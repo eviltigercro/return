@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#2563eb" />
+  <title>效期管理</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <!-- ===== 商品列表 ===== -->
+  <section id="screen-list" class="screen active">
+    <header class="appbar">
+      <h1>效期管理</h1>
+      <div class="appbar-actions">
+        <button id="btn-open-alerts" class="icon-btn" title="提醒中心" aria-label="提醒中心">
+          🔔<span id="alert-badge" class="badge" hidden>0</span>
+        </button>
+        <button id="btn-open-settings" class="icon-btn" title="設定" aria-label="設定">⚙️</button>
+      </div>
+    </header>
+
+    <div class="toolbar">
+      <input id="search-input" class="search" type="search" placeholder="🔍 搜尋 商品 / 條碼 / 貨號" />
+      <div class="toolbar-row">
+        <label class="select-wrap">排序
+          <select id="sort-select">
+            <option value="returnDate">退貨日（近→遠）</option>
+            <option value="expiry">有效日期（近→遠）</option>
+            <option value="created">建立時間（新→舊）</option>
+            <option value="name">名稱</option>
+          </select>
+        </label>
+        <label class="select-wrap">篩選
+          <select id="filter-select">
+            <option value="all">全部</option>
+            <option value="overdue">已過退貨日</option>
+            <option value="soon">即將到期(7天內)</option>
+            <option value="safe">安全</option>
+          </select>
+        </label>
+        <label class="select-wrap">檢視
+          <select id="group-select">
+            <option value="batch">依批次</option>
+            <option value="product">依商品分組</option>
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <main id="list-container" class="list"></main>
+    <p id="list-empty" class="empty" hidden>目前沒有商品，點右下角 ＋ 新增。</p>
+
+    <button id="btn-add" class="fab" title="新增商品" aria-label="新增商品">＋</button>
+  </section>
+
+  <!-- ===== 新增 / 編輯 ===== -->
+  <section id="screen-form" class="screen">
+    <header class="appbar">
+      <button class="icon-btn back-btn" data-back>←</button>
+      <h1 id="form-title">新增商品</h1>
+      <div class="appbar-actions">
+        <button id="btn-save" class="text-btn">儲存</button>
+      </div>
+    </header>
+
+    <form id="product-form" class="form" autocomplete="off">
+      <input type="hidden" id="f-batch-id" />
+
+      <fieldset>
+        <legend>商品識別（條碼與貨號擇一）</legend>
+        <div class="btn-row">
+          <button type="button" id="btn-scan" class="chip-btn">📷 掃條碼</button>
+          <span class="hint">或手動輸入下方欄位</span>
+        </div>
+        <label>國際條碼
+          <input id="f-barcode" type="text" inputmode="numeric" placeholder="例如 4710xxxxxxxxx" />
+        </label>
+        <label>自設貨號（5~8 碼，可英數）
+          <input id="f-code" type="text" maxlength="8" placeholder="例如 A12345" />
+          <small id="code-error" class="field-error" hidden>貨號需為 5~8 碼英數字</small>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>商品名稱</legend>
+        <label>名稱
+          <div class="input-with-btn">
+            <input id="f-name" type="text" placeholder="例如 鮮奶 1L" />
+            <button type="button" id="btn-voice-name" class="chip-btn" title="語音輸入">🎤</button>
+          </div>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>效期與提醒</legend>
+        <label>有效日期
+          <div class="input-with-btn">
+            <input id="f-expiry" type="date" />
+            <button type="button" id="btn-voice-date" class="chip-btn" title="語音口述日期">🎤</button>
+          </div>
+        </label>
+        <label>提前提醒天數
+          <input id="f-lead" type="number" min="0" max="3650" value="30" />
+        </label>
+        <p class="return-preview">退貨日：<strong id="return-preview">—</strong></p>
+      </fieldset>
+
+      <fieldset>
+        <legend>其他</legend>
+        <label>數量
+          <input id="f-qty" type="number" min="0" value="1" />
+        </label>
+        <label>備註
+          <input id="f-note" type="text" placeholder="例如 冷藏櫃 A 區" />
+        </label>
+      </fieldset>
+    </form>
+  </section>
+
+  <!-- ===== 商品詳情 ===== -->
+  <section id="screen-detail" class="screen">
+    <header class="appbar">
+      <button class="icon-btn back-btn" data-back>←</button>
+      <h1>商品詳情</h1>
+      <div class="appbar-actions">
+        <button id="btn-edit" class="text-btn">編輯</button>
+        <button id="btn-delete" class="text-btn danger">刪除</button>
+      </div>
+    </header>
+    <main id="detail-container" class="detail"></main>
+  </section>
+
+  <!-- ===== 提醒中心 ===== -->
+  <section id="screen-alerts" class="screen">
+    <header class="appbar">
+      <button class="icon-btn back-btn" data-back>←</button>
+      <h1>提醒中心</h1>
+    </header>
+    <main id="alerts-container" class="list"></main>
+  </section>
+
+  <!-- ===== 設定 ===== -->
+  <section id="screen-settings" class="screen">
+    <header class="appbar">
+      <button class="icon-btn back-btn" data-back>←</button>
+      <h1>設定</h1>
+    </header>
+    <main class="settings">
+      <label class="row">預設提前提醒天數
+        <input id="s-lead" type="number" min="0" max="3650" />
+      </label>
+      <label class="row">每日提醒時間
+        <input id="s-time" type="time" />
+      </label>
+      <label class="row">通知開關
+        <input id="s-notify" type="checkbox" />
+      </label>
+      <button id="btn-test-notify" class="block-btn">🔔 發送測試通知</button>
+
+      <h2>資料備份 / 還原</h2>
+      <button id="btn-export" class="block-btn">⬆️ 匯出備份檔</button>
+      <label class="block-btn file-label">⬇️ 從備份還原
+        <input id="import-file" type="file" accept="application/json" hidden />
+      </label>
+
+      <p class="version">版本 1.0（PWA 網頁版）</p>
+    </main>
+  </section>
+
+  <!-- ===== 掃碼覆蓋層 ===== -->
+  <div id="scan-overlay" class="overlay" hidden>
+    <div class="scan-box">
+      <video id="scan-video" playsinline></video>
+      <div class="scan-frame"></div>
+    </div>
+    <p id="scan-hint" class="scan-hint">把條碼對準框內即可自動辨識</p>
+    <div class="btn-row center">
+      <button id="btn-scan-manual" class="chip-btn">⌨️ 改用手動輸入</button>
+      <button id="btn-scan-close" class="chip-btn">關閉</button>
+    </div>
+  </div>
+
+  <!-- 提示訊息 -->
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
