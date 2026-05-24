@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="96" fill="#2563eb"/>
+  <!-- 日曆本體 -->
+  <rect x="120" y="140" width="272" height="252" rx="28" fill="#ffffff"/>
+  <rect x="120" y="140" width="272" height="64" rx="28" fill="#1d4ed8"/>
+  <!-- 掛環 -->
+  <rect x="170" y="116" width="24" height="56" rx="12" fill="#bfdbfe"/>
+  <rect x="318" y="116" width="24" height="56" rx="12" fill="#bfdbfe"/>
+  <!-- 勾選（代表已管理）-->
+  <path d="M188 286 l44 44 l92 -104" fill="none" stroke="#16a34a" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -596,8 +596,8 @@ function cnNumToInt(s) {
   if (/^\d+$/.test(s)) return parseInt(s, 10);
   if (s.includes("十")) {
     const [a, b] = s.split("十");
-    const tens = a === "" ? 1 : (map[a] ?? parseInt(a, 10) || 0);
-    const ones = b === "" ? 0 : (map[b] ?? parseInt(b, 10) || 0);
+    const tens = a === "" ? 1 : (map[a] ?? (parseInt(a, 10) || 0));
+    const ones = b === "" ? 0 : (map[b] ?? (parseInt(b, 10) || 0));
     return tens * 10 + ones;
   }
   let n = 0;
