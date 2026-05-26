@@ -12,6 +12,9 @@
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
+/* 確保 hidden 屬性的優先級高於任何 display 設定 */
+[hidden] { display: none !important; }
+
 html, body {
   margin: 0;
   padding: 0;
@@ -114,6 +117,18 @@ legend { font-size: 13px; color: var(--muted); font-weight: 700; padding: 0 6px;
 .form input[type=text], .form input[type=number], .form input[type=date] {
   width: 100%; padding: 10px 12px; font-size: 16px; margin-top: 4px;
   border: 1px solid var(--border); border-radius: 10px; background: #fff; color: var(--text);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+/* 手動輸入引導：條碼欄位閃光提示 */
+@keyframes field-pulse {
+  0%   { border-color: var(--border); box-shadow: none; }
+  30%  { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.25); }
+  60%  { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.25); }
+  100% { border-color: var(--border); box-shadow: none; }
+}
+.field-highlight {
+  animation: field-pulse 1.2s ease;
 }
 .input-with-btn { display: flex; gap: 8px; align-items: stretch; }
 .input-with-btn input { flex: 1; }

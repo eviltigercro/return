@@ -1,0 +1,6 @@
+node_modules/
+package.json
+package-lock.json
+test-app.js
+test-scan-manual.js
+*.png

@@ -524,7 +524,8 @@ let scanRAF = null;
 
 async function openScan() {
   if (!("BarcodeDetector" in window)) {
-    toast("此瀏覽器不支援掃碼，請改用手動輸入");
+    toast("此瀏覽器不支援掃碼，請直接在下方輸入條碼");
+    focusBarcodeField();
     return;
   }
   const overlay = $("#scan-overlay");
@@ -564,6 +565,18 @@ function closeScan() {
     scanStream.getTracks().forEach((t) => t.stop());
     scanStream = null;
   }
+}
+
+// 關閉掃碼後，引導使用者到條碼欄位手動輸入
+function focusBarcodeField() {
+  const field = $("#f-barcode");
+  field.scrollIntoView({ behavior: "smooth", block: "center" });
+  field.focus();
+  // 移除後重加 class，讓動畫可以重複觸發
+  field.classList.remove("field-highlight");
+  void field.offsetWidth; // 強制 reflow
+  field.classList.add("field-highlight");
+  field.addEventListener("animationend", () => field.classList.remove("field-highlight"), { once: true });
 }
 
 // ---------- 語音 ----------
@@ -685,7 +698,7 @@ function bindEvents() {
 
   $("#btn-scan").addEventListener("click", openScan);
   $("#btn-scan-close").addEventListener("click", closeScan);
-  $("#btn-scan-manual").addEventListener("click", () => { closeScan(); $("#f-barcode").focus(); });
+  $("#btn-scan-manual").addEventListener("click", () => { closeScan(); focusBarcodeField(); });
 
   $("#btn-voice-name").addEventListener("click", voiceName);
   $("#btn-voice-date").addEventListener("click", voiceDate);
