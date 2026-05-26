@@ -2,11 +2,11 @@
 
 > 專案：商品效期管理 App（Android 單機版）
 > 規格見 `規格文件.md`
-> 最後更新：2026-05-26
+> 最後更新：2026-05-27
 
 ---
 
-## [目前進度（2026-05-26 測試完成）]
+## [目前進度（2026-05-27 暫停點）]
 
 **已完成的檔案：**
 - `規格文件.md`、`implementation-notes.md`
@@ -33,12 +33,28 @@
 - 🐛 `#scan-overlay` CSS `.overlay { display: flex }` 覆蓋 `hidden` 屬性，導致不可見的掃碼蓋層阻擋所有點擊
   → 修正：`css/styles.css` 加入 `[hidden] { display: none !important; }`
 
-**尚待人工測試（需實體設備）：**
-- 相機掃碼、語音輸入、備份匯出/還原、PWA 安裝、背景通知
+**2026-05-27 手機實機測試（ngrok HTTPS）：**
+- ✅ 語音輸入名稱（A 手機正常）
+- ✅ 語音輸入日期（A 手機正常）
+- ✅ B 手機語音辨識失敗 → 已改善錯誤提示訊息（顯示具體原因）→ 已處理
+- ⬜ 相機掃條碼（尚未測試）
+- ⬜ 備份匯出 / 還原（尚未測試）
+- ⬜ PWA 安裝成 App（尚未測試）
+- ⬜ 背景推播通知（尚未測試）
+
+**已找到並修正的 Bug（2）：**
+- 🐛 `#scan-overlay` 蓋層阻擋點擊 → 已修（`[hidden] { display: none !important; }`）
+- 🐛 手動輸入條碼無引導 → 已修（`focusBarcodeField()` + 閃光動畫）
+- 🐛 語音錯誤訊息不清楚 → 已修（`voiceErrorMsg()` 依錯誤碼給中文說明）
+
+**下次接續項目：**
+1. 繼續手機測試（相機掃碼、備份還原、安裝成 App）
+2. 手機測試 ngrok：執行 `python -m http.server 8000`，再執行 `ngrok http 8000`
 
 **注意事項：**
 - 相機掃碼與語音需在 `localhost` 或 HTTPS 下才能用。
 - 本機啟動：`python -m http.server 8000`，瀏覽器開 `http://localhost:8000/`
+- 手機測試：加開 `ngrok http 8000`，用 ngrok 給的 https:// 網址
 
 ---
 
