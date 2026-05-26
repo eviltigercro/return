@@ -590,16 +590,35 @@ function getRecognition() {
   return r;
 }
 
+// 將 Web Speech API 的錯誤碼轉成使用者看得懂的說明
+function voiceErrorMsg(errorCode) {
+  switch (errorCode) {
+    case "not-allowed":
+    case "service-not-allowed":
+      return "麥克風權限被拒絕，請到手機設定 → 瀏覽器 → 權限，開啟麥克風";
+    case "audio-capture":
+      return "找不到麥克風，請確認設備有麥克風且未被其他 App 佔用";
+    case "network":
+      return "語音辨識需要連線至伺服器，請確認網路連線後再試";
+    case "no-speech":
+      return "沒有偵測到聲音，請靠近麥克風並放大音量再試一次";
+    case "aborted":
+      return "語音辨識已取消";
+    default:
+      return `語音辨識失敗（${errorCode}），請再試一次`;
+  }
+}
+
 function voiceName() {
   const r = getRecognition();
-  if (!r) return toast("此瀏覽器不支援語音輸入");
+  if (!r) return toast("此瀏覽器不支援語音輸入（建議用 Chrome）");
   toast("請說出商品名稱…");
   r.onresult = (e) => {
     const text = e.results[0][0].transcript.trim();
     $("#f-name").value = text;
     toast("辨識結果：" + text);
   };
-  r.onerror = () => toast("語音辨識失敗，請再試一次");
+  r.onerror = (e) => toast(voiceErrorMsg(e.error));
   r.start();
 }
 
@@ -655,7 +674,7 @@ function voiceDate() {
       toast(`聽到「${text}」但無法解析日期，請手動選擇`);
     }
   };
-  r.onerror = () => toast("語音辨識失敗，請再試一次");
+  r.onerror = (e) => toast(voiceErrorMsg(e.error));
   r.start();
 }
 
