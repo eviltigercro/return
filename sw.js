@@ -1,5 +1,5 @@
 /* Service Worker — 離線快取 + 通知處理 */
-const CACHE_NAME = "expiry-cache-v3";
+const CACHE_NAME = "expiry-cache-v4";
 const APP_SHELL = [
   "./",
   "./index.html",

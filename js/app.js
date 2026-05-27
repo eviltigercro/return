@@ -287,12 +287,12 @@ function openForm(batchId = null) {
     $("#f-lead").value = batch.leadDays ?? DB.settings.defaultLeadDays;
     $("#f-qty").value = batch.qty ?? 1;
     $("#f-note").value = batch.note || "";
-    $("#f-calendar").checked = false; // 編輯時預設不勾（通常已加過）
+    const cal = $("#f-calendar"); if (cal) cal.checked = false; // 編輯時預設不勾
   } else {
     $("#form-title").textContent = "新增商品";
     $("#f-lead").value = DB.settings.defaultLeadDays;
     $("#f-qty").value = 1;
-    $("#f-calendar").checked = true;  // 新增時預設勾選
+    const cal = $("#f-calendar"); if (cal) cal.checked = true;  // 新增時預設勾選
   }
   updateReturnPreview();
   showScreen("form");
@@ -328,7 +328,7 @@ function saveForm() {
   }
   if (Number.isNaN(leadDays) || leadDays < 0) return toast("提前天數不正確");
 
-  const addToCalendarChecked = $("#f-calendar").checked;
+  const addToCalendarChecked = $("#f-calendar")?.checked || false;
   const product = DB.upsertProduct({ barcode, code, name });
   const editingId = $("#f-batch-id").value;
   let savedBatch;
@@ -421,7 +421,9 @@ function downloadCalendarICS(batch, product) {
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
   a.href     = url;
-  a.download = `退貨提醒_${name}_${returnDate}.ics`;
+  // 加上分鐘時間戳避免 Chrome 跳「再次下載確認」
+  const ts = new Date().toISOString().slice(0, 16).replace("T", "_").replace(":", "");
+  a.download = `退貨提醒_${name}_${returnDate}_${ts}.ics`;
   a.click();
   URL.revokeObjectURL(url);
   toast(`已產生行事曆（${returnDate} ${hStr}:${mStr}），請選擇行事曆 App 開啟`);
