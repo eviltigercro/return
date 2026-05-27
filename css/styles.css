@@ -167,6 +167,16 @@ legend { font-size: 13px; color: var(--muted); font-weight: 700; padding: 0 6px;
   background: var(--card); border: 1px solid var(--border); border-radius: 12px; cursor: pointer; color: var(--text);
 }
 .block-btn:active { background: #f8fafc; }
+/* 表單行事曆勾選框 */
+.calendar-check-label {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 0 6px;
+  font-size: 15px; color: var(--blue); cursor: pointer;
+}
+.calendar-check-label input[type=checkbox] {
+  width: 20px; height: 20px; accent-color: var(--blue); cursor: pointer; flex-shrink: 0;
+}
+
 /* 行事曆按鈕：在詳情頁卡片下方，帶藍色調 */
 .calendar-btn {
   margin: 12px 16px 8px;

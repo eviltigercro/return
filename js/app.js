@@ -287,10 +287,12 @@ function openForm(batchId = null) {
     $("#f-lead").value = batch.leadDays ?? DB.settings.defaultLeadDays;
     $("#f-qty").value = batch.qty ?? 1;
     $("#f-note").value = batch.note || "";
+    $("#f-calendar").checked = false; // 編輯時預設不勾（通常已加過）
   } else {
     $("#form-title").textContent = "新增商品";
     $("#f-lead").value = DB.settings.defaultLeadDays;
     $("#f-qty").value = 1;
+    $("#f-calendar").checked = true;  // 新增時預設勾選
   }
   updateReturnPreview();
   showScreen("form");
@@ -326,24 +328,30 @@ function saveForm() {
   }
   if (Number.isNaN(leadDays) || leadDays < 0) return toast("提前天數不正確");
 
+  const addToCalendarChecked = $("#f-calendar").checked;
   const product = DB.upsertProduct({ barcode, code, name });
   const editingId = $("#f-batch-id").value;
+  let savedBatch;
 
   if (editingId) {
-    const batch = DB.batches.find((b) => b.id === editingId);
-    Object.assign(batch, { productId: product.id, expiry, leadDays, qty, note });
+    savedBatch = DB.batches.find((b) => b.id === editingId);
+    Object.assign(savedBatch, { productId: product.id, expiry, leadDays, qty, note });
     toast("已更新");
   } else {
-    DB.batches.push({
-      id: uid(), productId: product.id, expiry, leadDays, qty, note,
-      createdAt: new Date().toISOString(),
-    });
+    savedBatch = { id: uid(), productId: product.id, expiry, leadDays, qty, note,
+      createdAt: new Date().toISOString() };
+    DB.batches.push(savedBatch);
     toast("已新增");
   }
   DB.saveBatches();
   navStack = ["list"];
   showScreen("list", false);
   renderList();
+
+  // 勾選「加入行事曆」時自動下載 .ics
+  if (addToCalendarChecked) {
+    setTimeout(() => downloadCalendarICS(savedBatch, product), 300);
+  }
 }
 
 function deleteCurrent() {
@@ -358,33 +366,26 @@ function deleteCurrent() {
 }
 
 // ---------- 加入行事曆（.ics）----------
-function addToCalendar() {
-  const batch = DB.batches.find((b) => b.id === currentBatchId);
-  if (!batch) return;
-  const product = DB.productOf(batch) || {};
-  const st = statusOf(batch);
 
-  const name     = product.name || "商品";
-  const returnDate = st.returnStr;   // 格式：2026-06-01
-  if (!returnDate || returnDate === "—") return toast("此批次無法計算退貨日");
+// 共用：根據 batch + product 產生 .ics 並觸發下載
+function downloadCalendarICS(batch, product) {
+  const name = product.name || "商品";
+  const expDate = parseYMD(batch.expiry);
+  if (!expDate) return toast("此批次無法計算退貨日");
+  const returnDate = fmtYMD(addDays(expDate, -(batch.leadDays ?? 0)));
 
-  // 取設定的提醒時間（預設 09:00）
   const notifyTime = DB.settings.notifyTime || "09:00";
   const [hh, mm] = notifyTime.split(":").map(Number);
   const hStr  = String(hh).padStart(2, "0");
   const mStr  = String(mm).padStart(2, "0");
-  const hStr2 = String(hh + 1).padStart(2, "0"); // 結束時間 +1 小時
+  const hStr2 = String(hh + 1).padStart(2, "0");
 
-  // .ics 日期時間格式（浮動時間，不含時區，各行事曆 App 自動套用本地時區）
-  const d      = returnDate.replace(/-/g, "");    // e.g., "20260601"
+  const d       = returnDate.replace(/-/g, "");
   const dtStart = `${d}T${hStr}${mStr}00`;
   const dtEnd   = `${d}T${hStr2}${mStr}00`;
-
-  // 當下 UTC 時間戳（DTSTAMP 必填）
   const dtstamp = new Date().toISOString()
     .replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
 
-  // DESCRIPTION 多行用 \n 跳脫
   const desc = [
     `商品：${name}`,
     product.barcode ? `條碼：${product.barcode}` : "",
@@ -401,13 +402,12 @@ function addToCalendar() {
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",
-    `UID:batch-${currentBatchId}@expiry-app`,
+    `UID:batch-${batch.id}@expiry-app`,
     `DTSTAMP:${dtstamp}`,
     `DTSTART:${dtStart}`,
     `DTEND:${dtEnd}`,
     `SUMMARY:退貨提醒：${name}`,
     `DESCRIPTION:${desc}`,
-    // 鬧鐘：事件開始時提醒
     "BEGIN:VALARM",
     "TRIGGER:PT0S",
     "ACTION:DISPLAY",
@@ -424,7 +424,15 @@ function addToCalendar() {
   a.download = `退貨提醒_${name}_${returnDate}.ics`;
   a.click();
   URL.revokeObjectURL(url);
-  toast(`已產生行事曆事件（${returnDate} ${hStr}:${mStr}）\n請選擇行事曆 App 開啟`);
+  toast(`已產生行事曆（${returnDate} ${hStr}:${mStr}），請選擇行事曆 App 開啟`);
+}
+
+// 詳情頁按鈕：用 currentBatchId
+function addToCalendar() {
+  const batch = DB.batches.find((b) => b.id === currentBatchId);
+  if (!batch) return;
+  const product = DB.productOf(batch) || {};
+  downloadCalendarICS(batch, product);
 }
 
 // 條碼/貨號輸入後，若已建檔過則自動帶出名稱
