@@ -555,7 +555,8 @@ function bindSettings() {
   $("#btn-test-notify").addEventListener("click", async () => {
     const ok = await ensureNotifyPermission();
     if (!ok) return toast("瀏覽器未允許通知權限");
-    showNotification("測試通知", "這是一則測試通知，代表提醒功能正常。");
+    const time = DB.settings.notifyTime || "09:00";
+    showNotification("✅ 效期管理 — 通知功能正常", `真實提醒會在每天 ${time} 發出，告知您哪些商品已到退貨日。`);
     toast("已發送測試通知");
   });
 
