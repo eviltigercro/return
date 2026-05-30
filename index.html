@@ -119,10 +119,6 @@
         </label>
       </fieldset>
 
-      <label class="calendar-check-label">
-        <input id="f-calendar" type="checkbox" checked />
-        📅 儲存後自動加入行事曆（退貨日提醒）
-      </label>
     </form>
   </section>
 
@@ -145,6 +141,9 @@
       <button class="icon-btn back-btn" data-back>←</button>
       <h1>提醒中心</h1>
     </header>
+    <div id="bulk-calendar-bar" class="bulk-bar" hidden>
+      <button id="btn-bulk-calendar" class="block-btn">📅 批量加入所有到期商品至行事曆</button>
+    </div>
     <main id="alerts-container" class="list"></main>
   </section>
 
@@ -165,6 +164,7 @@
         <input id="s-notify" type="checkbox" />
       </label>
       <button id="btn-test-notify" class="block-btn">🔔 發送測試通知</button>
+      <p class="notify-tip">💡 建議搭配行事曆提醒：行事曆的提醒聲音更穩定，不受瀏覽器限制。新增商品時系統會自動詢問是否加入行事曆。</p>
 
       <h2>資料備份 / 還原</h2>
       <button id="btn-export" class="block-btn">⬆️ 匯出備份檔</button>
@@ -172,7 +172,7 @@
         <input id="import-file" type="file" accept="application/json" hidden />
       </label>
 
-      <p class="version">版本 1.2（2026-05-30）</p>
+      <p class="version">版本 1.3（2026-05-30）</p>
     </main>
   </section>
 
@@ -186,6 +186,18 @@
     <div class="btn-row center">
       <button id="btn-scan-manual" class="chip-btn">⌨️ 改用手動輸入</button>
       <button id="btn-scan-close" class="chip-btn">關閉</button>
+    </div>
+  </div>
+
+  <!-- ===== 行事曆提醒對話框 ===== -->
+  <div id="calendar-modal" class="modal-overlay" hidden>
+    <div class="modal-card">
+      <div class="modal-emoji">📅</div>
+      <h2>加入退貨日提醒</h2>
+      <p>行事曆提醒比 App 通知更可靠<br>到期當天會有聲音提醒您。</p>
+      <p id="modal-product-name" class="modal-product-name"></p>
+      <button id="btn-modal-calendar" class="modal-btn-primary">加入行事曆</button>
+      <button id="btn-modal-skip" class="modal-btn-secondary">暫時略過</button>
     </div>
   </div>
 

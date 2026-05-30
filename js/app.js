@@ -287,12 +287,10 @@ function openForm(batchId = null) {
     $("#f-lead").value = batch.leadDays ?? DB.settings.defaultLeadDays;
     $("#f-qty").value = batch.qty ?? 1;
     $("#f-note").value = batch.note || "";
-    const cal = $("#f-calendar"); if (cal) cal.checked = false; // 編輯時預設不勾
   } else {
     $("#form-title").textContent = "新增商品";
     $("#f-lead").value = DB.settings.defaultLeadDays;
     $("#f-qty").value = 1;
-    const cal = $("#f-calendar"); if (cal) cal.checked = true;  // 新增時預設勾選
   }
   updateReturnPreview();
   showScreen("form");
@@ -328,7 +326,6 @@ function saveForm() {
   }
   if (Number.isNaN(leadDays) || leadDays < 0) return toast("提前天數不正確");
 
-  const addToCalendarChecked = $("#f-calendar")?.checked || false;
   const product = DB.upsertProduct({ barcode, code, name });
   const editingId = $("#f-batch-id").value;
   let savedBatch;
@@ -348,9 +345,9 @@ function saveForm() {
   showScreen("list", false);
   renderList();
 
-  // 勾選「加入行事曆」時自動下載 .ics
-  if (addToCalendarChecked) {
-    setTimeout(() => downloadCalendarICS(savedBatch, product), 300);
+  // 新增時詢問是否加入行事曆
+  if (!editingId) {
+    setTimeout(() => showCalendarModal(savedBatch, product), 400);
   }
 }
 
@@ -367,11 +364,14 @@ function deleteCurrent() {
 
 // ---------- 加入行事曆（.ics）----------
 
-// 共用：根據 batch + product 產生 .ics 並觸發下載
-function downloadCalendarICS(batch, product) {
+let pendingCalendarBatch = null;
+let pendingCalendarProduct = null;
+
+// 產生單一商品的 VEVENT 字串
+function buildVEVENT(batch, product) {
   const name = product.name || "商品";
   const expDate = parseYMD(batch.expiry);
-  if (!expDate) return toast("此批次無法計算退貨日");
+  if (!expDate) return null;
   const returnDate = fmtYMD(addDays(expDate, -(batch.leadDays ?? 0)));
 
   const notifyTime = DB.settings.notifyTime || "09:00";
@@ -383,8 +383,7 @@ function downloadCalendarICS(batch, product) {
   const d       = returnDate.replace(/-/g, "");
   const dtStart = `${d}T${hStr}${mStr}00`;
   const dtEnd   = `${d}T${hStr2}${mStr}00`;
-  const dtstamp = new Date().toISOString()
-    .replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
+  const dtstamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
 
   const desc = [
     `商品：${name}`,
@@ -395,12 +394,7 @@ function downloadCalendarICS(batch, product) {
     batch.note ? `備註：${batch.note}` : "",
   ].filter(Boolean).join("\\n");
 
-  const ics = [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//商品效期管理 v1.0//TW",
-    "CALSCALE:GREGORIAN",
-    "METHOD:PUBLISH",
+  return [
     "BEGIN:VEVENT",
     `UID:batch-${batch.id}@expiry-app`,
     `DTSTAMP:${dtstamp}`,
@@ -414,19 +408,69 @@ function downloadCalendarICS(batch, product) {
     `DESCRIPTION:退貨提醒：${name}`,
     "END:VALARM",
     "END:VEVENT",
+  ].join("\r\n");
+}
+
+// 觸發 .ics 檔案下載
+function triggerICSDownload(vevents, filename) {
+  const ics = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//商品效期管理 v1.0//TW",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    ...vevents,
     "END:VCALENDAR",
   ].join("\r\n");
-
   const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
-  a.href     = url;
-  // 加上分鐘時間戳避免 Chrome 跳「再次下載確認」
-  const ts = new Date().toISOString().slice(0, 16).replace("T", "_").replace(":", "");
-  a.download = `退貨提醒_${name}_${returnDate}_${ts}.ics`;
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
-  toast(`已產生行事曆（${returnDate} ${hStr}:${mStr}），請選擇行事曆 App 開啟`);
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+}
+
+// 單筆下載
+function downloadCalendarICS(batch, product) {
+  const vevent = buildVEVENT(batch, product);
+  if (!vevent) return toast("此批次無法計算退貨日");
+  const name = product.name || "商品";
+  const expDate = parseYMD(batch.expiry);
+  const returnDate = expDate ? fmtYMD(addDays(expDate, -(batch.leadDays ?? 0))) : "unknown";
+  const ts = new Date().toISOString().slice(0, 16).replace("T", "_").replace(":", "");
+  triggerICSDownload([vevent], `退貨提醒_${name}_${returnDate}_${ts}.ics`);
+  const notifyTime = DB.settings.notifyTime || "09:00";
+  toast(`已產生行事曆（${returnDate} ${notifyTime}），請選擇行事曆 App 開啟`);
+}
+
+// 批量下載（提醒中心所有紅燈＋黃燈商品）
+function bulkDownloadCalendar() {
+  const items = [...dueBatches(), ...soonBatches()];
+  if (items.length === 0) return toast("目前沒有需要提醒的商品");
+  const vevents = items.map(it => buildVEVENT(it.batch, it.product)).filter(Boolean);
+  if (vevents.length === 0) return toast("無法產生行事曆");
+  const ts = fmtYMD(todayMidnight());
+  triggerICSDownload(vevents, `退貨提醒_批量_${ts}.ics`);
+  toast(`已下載 ${vevents.length} 筆商品的行事曆提醒`);
+}
+
+// 顯示／關閉行事曆確認 modal
+function showCalendarModal(batch, product) {
+  pendingCalendarBatch = batch;
+  pendingCalendarProduct = product;
+  const name = product.name || "商品";
+  const expDate = parseYMD(batch.expiry);
+  const returnDate = expDate ? fmtYMD(addDays(expDate, -(batch.leadDays ?? 0))) : "—";
+  $("#modal-product-name").textContent = `${name}　退貨日：${returnDate}`;
+  $("#calendar-modal").removeAttribute("hidden");
+}
+
+function hideCalendarModal() {
+  $("#calendar-modal").setAttribute("hidden", "");
+  pendingCalendarBatch = null;
+  pendingCalendarProduct = null;
 }
 
 // 詳情頁按鈕：用 currentBatchId
@@ -461,6 +505,8 @@ function renderAlerts() {
   const due = dueBatches();
   const soon = soonBatches();
   c.innerHTML = "";
+  const bulkBar = $("#bulk-calendar-bar");
+  if (bulkBar) bulkBar.hidden = (due.length + soon.length === 0);
 
   const sec = (title) => {
     const t = document.createElement("div");
@@ -827,6 +873,15 @@ function bindEvents() {
 
   $("#btn-voice-name").addEventListener("click", voiceName);
   $("#btn-voice-date").addEventListener("click", voiceDate);
+
+  $("#btn-modal-calendar").addEventListener("click", () => {
+    if (pendingCalendarBatch && pendingCalendarProduct) {
+      downloadCalendarICS(pendingCalendarBatch, pendingCalendarProduct);
+    }
+    hideCalendarModal();
+  });
+  $("#btn-modal-skip").addEventListener("click", hideCalendarModal);
+  $("#btn-bulk-calendar").addEventListener("click", bulkDownloadCalendar);
 
   bindSettings();
 }
