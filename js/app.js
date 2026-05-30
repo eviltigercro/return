@@ -764,6 +764,29 @@ function voiceDate() {
 function registerSW() {
   if (!("serviceWorker" in navigator)) return;
   navigator.serviceWorker.register("sw.js").then(async (reg) => {
+    // 偵測新版本：新 SW 安裝完畢且正在等待時，顯示更新橫幅
+    const showUpdateBanner = () => {
+      const banner = $("#update-banner");
+      if (banner) banner.removeAttribute("hidden");
+    };
+    if (reg.waiting && navigator.serviceWorker.controller) {
+      showUpdateBanner();
+    }
+    reg.addEventListener("updatefound", () => {
+      const newSW = reg.installing;
+      newSW.addEventListener("statechange", () => {
+        if (newSW.state === "installed" && navigator.serviceWorker.controller) {
+          showUpdateBanner();
+        }
+      });
+    });
+
+    // 點「立即更新」：通知 SW 跳過等待，然後重新載入
+    $("#btn-update")?.addEventListener("click", () => {
+      if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
+      navigator.serviceWorker.addEventListener("controllerchange", () => location.reload());
+    });
+
     // 嘗試註冊背景定期同步（盡力而為，瀏覽器多半需安裝成 App 才生效）
     if ("periodicSync" in reg) {
       try {

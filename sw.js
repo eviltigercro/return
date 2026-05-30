@@ -40,6 +40,11 @@ self.addEventListener("fetch", (event) => {
   );
 });
 
+// 收到「立即更新」訊息時跳過等待
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
+});
+
 // 背景定期同步（盡力而為）：提醒使用者開啟 App 確認退貨清單
 // 註：Service Worker 無法讀取 localStorage，因此這裡只能發出通用提醒，
 //     真正「哪些商品到退貨日」的精準提醒由 App 開啟時計算。
