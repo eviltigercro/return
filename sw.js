@@ -1,5 +1,5 @@
 /* Service Worker — 離線快取 + 通知處理 */
-const CACHE_NAME = "expiry-cache-v4";
+const CACHE_NAME = "expiry-cache-v5";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -7,6 +7,7 @@ const APP_SHELL = [
   "./js/app.js",
   "./manifest.webmanifest",
   "./icon.svg",
+  "./guide.html",
 ];
 
 // 安裝：快取 App 基本檔案
