@@ -351,15 +351,42 @@ function saveForm() {
   }
 }
 
+function downloadCancelICS(batch, product) {
+  const name = product.name || "商品";
+  const dtstamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
+  const cancelEvent = [
+    "BEGIN:VEVENT",
+    `UID:batch-${batch.id}@expiry-app`,
+    `DTSTAMP:${dtstamp}`,
+    "SEQUENCE:1",
+    "STATUS:CANCELLED",
+    `SUMMARY:退貨提醒：${name}`,
+    "END:VEVENT",
+  ].join("\r\n");
+  const ts = new Date().toISOString().slice(0, 16).replace("T", "_").replace(":", "");
+  triggerICSDownload([cancelEvent], `取消提醒_${name}_${ts}.ics`, "CANCEL");
+}
+
 function deleteCurrent() {
   if (!currentBatchId) return;
   if (!confirm("確定要刪除這筆商品批次嗎？此動作無法復原。")) return;
+  const batch = DB.batches.find((b) => b.id === currentBatchId);
+  const product = batch ? (DB.productOf(batch) || {}) : null;
   DB.batches = DB.batches.filter((b) => b.id !== currentBatchId);
   DB.saveBatches();
   toast("已刪除");
   navStack = ["list"];
   showScreen("list", false);
   renderList();
+  updateAlertBadge();
+  // 提供同步移除行事曆的選項
+  if (batch && product) {
+    setTimeout(() => {
+      if (confirm("是否同步移除行事曆中的退貨提醒？\n（點確定後下載取消檔，開啟後行事曆會自動移除）")) {
+        downloadCancelICS(batch, product);
+      }
+    }, 400);
+  }
 }
 
 // ---------- 加入行事曆（.ics）----------
@@ -411,14 +438,14 @@ function buildVEVENT(batch, product) {
   ].join("\r\n");
 }
 
-// 觸發 .ics 檔案下載
-function triggerICSDownload(vevents, filename) {
+// 觸發 .ics 檔案下載（method 預設 PUBLISH，取消事件用 CANCEL）
+function triggerICSDownload(vevents, filename, method = "PUBLISH") {
   const ics = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
     "PRODID:-//商品效期管理 v1.0//TW",
     "CALSCALE:GREGORIAN",
-    "METHOD:PUBLISH",
+    `METHOD:${method}`,
     ...vevents,
     "END:VCALENDAR",
   ].join("\r\n");
@@ -432,16 +459,34 @@ function triggerICSDownload(vevents, filename) {
   setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
 }
 
-// 單筆下載
-function downloadCalendarICS(batch, product) {
+// 單筆下載或分享（手機用分享，電腦用下載）
+async function downloadCalendarICS(batch, product) {
   const vevent = buildVEVENT(batch, product);
   if (!vevent) return toast("此批次無法計算退貨日");
   const name = product.name || "商品";
   const expDate = parseYMD(batch.expiry);
   const returnDate = expDate ? fmtYMD(addDays(expDate, -(batch.leadDays ?? 0))) : "unknown";
-  const ts = new Date().toISOString().slice(0, 16).replace("T", "_").replace(":", "");
-  triggerICSDownload([vevent], `退貨提醒_${name}_${returnDate}_${ts}.ics`);
   const notifyTime = DB.settings.notifyTime || "09:00";
+  const ics = [
+    "BEGIN:VCALENDAR", "VERSION:2.0",
+    "PRODID:-//商品效期管理 v1.0//TW",
+    "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
+    vevent, "END:VCALENDAR",
+  ].join("\r\n");
+  const ts = new Date().toISOString().slice(0, 16).replace("T", "_").replace(":", "");
+  const filename = `退貨提醒_${name}_${returnDate}_${ts}.ics`;
+  const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+  // 手機：優先用 Web Share API 直接開啟行事曆 App
+  if (navigator.canShare && navigator.canShare({ files: [new File([blob], filename, { type: "text/calendar" })] })) {
+    try {
+      await navigator.share({ files: [new File([blob], filename, { type: "text/calendar" })], title: `退貨提醒：${name}` });
+      return;
+    } catch (e) {
+      if (e.name === "AbortError") return; // 使用者取消分享
+    }
+  }
+  // 電腦：退回下載
+  triggerICSDownload([vevent], filename);
   toast(`已產生行事曆（${returnDate} ${notifyTime}），請選擇行事曆 App 開啟`);
 }
 
@@ -766,23 +811,47 @@ function cnNumToInt(s) {
   return n || NaN;
 }
 
-// 解析口述日期，例如「2026年8月15日」「八月十五」「2026 8 15」
+// 解析口述日期，支援以下格式（年、日均可省略「年」「日」字）：
+// 「2026年8月15日」「二零二六年八月十五日」「二零二六八月十五」「八月十五」「2026 8 15」
 function parseSpokenDate(text) {
   text = text.replace(/\s/g, "");
   let y, m, d;
-  const ym = text.match(/(\d{4})年/);
-  if (ym) y = parseInt(ym[1], 10);
-  const mm = text.match(/([0-9一二兩三四五六七八九十]+)月/);
-  if (mm) m = cnNumToInt(mm[1]);
-  const dd = text.match(/([0-9一二兩三四五六七八九十]+)[日號]/);
-  if (dd) d = cnNumToInt(dd[1]);
 
-  // 退而求其次：抓純數字
+  // 格式一：含「年」字（數字或中文年份 + 年 + 月份 + 月 + 日期）
+  const withNian = text.match(/(\d{4}|[零一二三四五六七八九]{4})年([零一二兩三四五六七八九十\d]{1,2})月([零一二兩三四五六七八九十\d]{1,3})[日號]?/);
+  if (withNian) {
+    y = cnNumToInt(withNian[1]);
+    m = cnNumToInt(withNian[2]);
+    d = cnNumToInt(withNian[3]);
+  }
+
+  // 格式二：四位中文年份 + 月份 + 月 + 日期（省略「年」「日」均可）
+  // 例：二零二七四月十二 / 二零二七四月十二日
+  if (y == null) {
+    const cnYear = text.match(/([零一二三四五六七八九]{4})([一二兩三四五六七八九十\d]{1,2})月([零一二兩三四五六七八九十\d]{1,3})[日號]?/);
+    if (cnYear) {
+      y = cnNumToInt(cnYear[1]);
+      m = cnNumToInt(cnYear[2]);
+      d = cnNumToInt(cnYear[3]);
+    }
+  }
+
+  // 格式三：只有月日，無年（八月十五 / 八月十五日 / 八月十五號）
+  if (y == null && m == null) {
+    const monthDay = text.match(/([一二兩三四五六七八九十\d]{1,2})月([零一二兩三四五六七八九十\d]{1,3})[日號]?/);
+    if (monthDay) {
+      m = cnNumToInt(monthDay[1]);
+      d = cnNumToInt(monthDay[2]);
+    }
+  }
+
+  // 格式四：純數字退而求其次
   if (m == null || d == null) {
     const nums = (text.match(/\d+/g) || []).map(Number);
     if (nums.length >= 3) { y = nums[0]; m = nums[1]; d = nums[2]; }
     else if (nums.length === 2) { m = nums[0]; d = nums[1]; }
   }
+
   if (y == null) y = new Date().getFullYear();
   if (!m || !d || m < 1 || m > 12 || d < 1 || d > 31) return null;
   return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
@@ -791,7 +860,7 @@ function parseSpokenDate(text) {
 function voiceDate() {
   const r = getRecognition();
   if (!r) return toast("此瀏覽器不支援語音輸入");
-  toast("請說出日期，例如「2026 年 8 月 15 日」…");
+  toast("請說出日期，例如「二零二六八月十五」或「2026年8月15日」…");
   r.onresult = (e) => {
     const text = e.results[0][0].transcript.trim();
     const ymd = parseSpokenDate(text);
