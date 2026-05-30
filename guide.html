@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>商品效期管理 App — 操作指南</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif;
+      background: #f5f7fa;
+      color: #2d3748;
+      line-height: 1.7;
+    }
+
+    /* 頂部標題區 */
+    .hero {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 40px 20px 32px;
+      text-align: center;
+    }
+    .hero h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 8px; }
+    .hero p  { font-size: 0.95rem; opacity: 0.88; }
+    .hero .app-link {
+      display: inline-block;
+      margin-top: 16px;
+      padding: 10px 24px;
+      background: white;
+      color: #667eea;
+      border-radius: 24px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      text-decoration: none;
+    }
+
+    /* 目錄 */
+    .toc {
+      background: white;
+      margin: 16px;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .toc h2 { font-size: 1rem; margin-bottom: 12px; color: #4a5568; }
+    .toc ol  { padding-left: 20px; }
+    .toc li  { margin: 6px 0; }
+    .toc a   { color: #667eea; text-decoration: none; font-size: 0.9rem; }
+    .toc a:hover { text-decoration: underline; }
+
+    /* 章節 */
+    .section {
+      background: white;
+      margin: 12px 16px;
+      border-radius: 12px;
+      padding: 24px 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .section h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #667eea;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e9ecff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #4a5568;
+      margin: 20px 0 10px;
+    }
+    .section p  { font-size: 0.93rem; margin: 8px 0; color: #4a5568; }
+
+    /* 表格 */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      margin: 12px 0;
+    }
+    th {
+      background: #f0f1ff;
+      color: #667eea;
+      padding: 9px 12px;
+      text-align: left;
+      font-weight: 700;
+    }
+    td { padding: 9px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+
+    /* 步驟列表 */
+    .steps { padding-left: 0; list-style: none; }
+    .steps li {
+      display: flex;
+      gap: 12px;
+      margin: 10px 0;
+      font-size: 0.93rem;
+    }
+    .steps li .num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: #667eea;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-top: 1px;
+    }
+
+    /* 提示框 */
+    .tip {
+      background: #f0f1ff;
+      border-left: 4px solid #667eea;
+      border-radius: 0 8px 8px 0;
+      padding: 12px 14px;
+      font-size: 0.88rem;
+      color: #4a5568;
+      margin: 12px 0;
+    }
+    .warn {
+      background: #fff5f5;
+      border-left: 4px solid #fc8181;
+      border-radius: 0 8px 8px 0;
+      padding: 12px 14px;
+      font-size: 0.88rem;
+      color: #744210;
+      margin: 12px 0;
+    }
+
+    /* 燈號卡片 */
+    .lights { display: flex; flex-direction: column; gap: 10px; margin: 12px 0; }
+    .light-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      background: #f9f9f9;
+      border-radius: 10px;
+      padding: 14px;
+    }
+    .light-dot { font-size: 1.8rem; flex-shrink: 0; }
+    .light-card .title { font-weight: 700; font-size: 0.95rem; margin-bottom: 2px; }
+    .light-card .desc  { font-size: 0.87rem; color: #718096; }
+
+    /* FAQ */
+    .faq-item { margin: 14px 0; }
+    .faq-q { font-weight: 700; font-size: 0.93rem; color: #4a5568; margin-bottom: 4px; }
+    .faq-a { font-size: 0.9rem; color: #718096; padding-left: 12px; border-left: 3px solid #e2e8f0; }
+
+    /* 頁尾 */
+    footer {
+      text-align: center;
+      padding: 32px 20px;
+      font-size: 0.82rem;
+      color: #a0aec0;
+    }
+    footer a { color: #667eea; text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<!-- 頂部標題 -->
+<div class="hero">
+  <h1>📦 商品效期管理 App</h1>
+  <p>第一次使用的完整操作指南</p>
+  <a class="app-link" href="https://eviltigercro.github.io/return/" target="_blank">開啟 App →</a>
+</div>
+
+<!-- 目錄 -->
+<div class="toc">
+  <h2>📋 目錄</h2>
+  <ol>
+    <li><a href="#s1">App 是什麼？</a></li>
+    <li><a href="#s2">開始使用</a></li>
+    <li><a href="#s3">新增商品</a></li>
+    <li><a href="#s4">燈號說明</a></li>
+    <li><a href="#s5">查看商品列表</a></li>
+    <li><a href="#s6">商品詳情與編輯</a></li>
+    <li><a href="#s7">刪除商品</a></li>
+    <li><a href="#s8">提醒中心</a></li>
+    <li><a href="#s9">行事曆提醒</a></li>
+    <li><a href="#s10">設定</a></li>
+    <li><a href="#s11">備份與還原</a></li>
+    <li><a href="#s12">常見問題</a></li>
+  </ol>
+</div>
+
+<!-- 1. App 是什麼 -->
+<div class="section" id="s1">
+  <h2>📌 1. App 是什麼？</h2>
+  <p>這是一款幫助店家管理商品有效期限的工具，讓您不再錯過退貨時機。</p>
+  <h3>核心功能</h3>
+  <table>
+    <tr><th>功能</th><th>說明</th></tr>
+    <tr><td>📝 記錄商品</td><td>輸入每批商品的有效日期、數量</td></tr>
+    <tr><td>📅 自動計算退貨日</td><td>有效日期往前推幾天，自動算出退貨日</td></tr>
+    <tr><td>🚦 燈號提醒</td><td>紅黃綠燈一眼看出哪些快到期</td></tr>
+    <tr><td>🔔 到期通知</td><td>退貨日當天發出提醒，不會漏掉</td></tr>
+  </table>
+  <div class="tip">✅ 完全離線，不需要網路、不需要登入，所有資料只存在您的手機裡。</div>
+</div>
+
+<!-- 2. 開始使用 -->
+<div class="section" id="s2">
+  <h2>🚀 2. 開始使用</h2>
+  <ul class="steps">
+    <li><span class="num">1</span><div>用手機 <strong>Chrome 瀏覽器</strong>打開網址：<br><strong>https://eviltigercro.github.io/return/</strong></div></li>
+    <li><span class="num">2</span><div>瀏覽器詢問是否允許「通知」權限，點 <strong>允許</strong>，才能收到到期提醒。</div></li>
+    <li><span class="num">3</span><div>（選用）把網頁加到主畫面，之後就像一般 App 點圖示開啟：<br>Chrome 右上角 ⋮ → 「新增至主畫面」→ 新增</div></li>
+  </ul>
+</div>
+
+<!-- 3. 新增商品 -->
+<div class="section" id="s3">
+  <h2>➕ 3. 新增商品</h2>
+  <p>點右下角的 <strong>「＋」</strong> 按鈕，開啟新增表單。</p>
+
+  <h3>條碼（擇一填寫）</h3>
+  <table>
+    <tr><th>方式</th><th>操作</th></tr>
+    <tr><td>📷 掃條碼</td><td>點「掃條碼」按鈕，對準商品條碼，自動辨識填入</td></tr>
+    <tr><td>✍️ 手動輸入</td><td>直接在「國際條碼」欄位打數字</td></tr>
+    <tr><td>🔢 自設貨號</td><td>填寫自訂的 5～8 碼英數貨號（例如：A00123）</td></tr>
+  </table>
+  <div class="tip">💡 如果這個條碼之前登記過，商品名稱會自動帶出，不需要重新打。</div>
+
+  <h3>商品名稱</h3>
+  <table>
+    <tr><th>方式</th><th>操作</th></tr>
+    <tr><td>🎤 語音輸入</td><td>點「語音」按鈕，說出商品名稱，系統自動辨識成文字</td></tr>
+    <tr><td>✍️ 手動輸入</td><td>直接在「商品名稱」欄位打字</td></tr>
+  </table>
+
+  <h3>有效日期</h3>
+  <table>
+    <tr><th>方式</th><th>操作</th></tr>
+    <tr><td>📅 日曆選擇</td><td>點日期欄位，用日曆元件點選</td></tr>
+    <tr><td>🎤 語音輸入</td><td>說「2026 年 8 月 15 日」，系統自動解析</td></tr>
+    <tr><td>✍️ 手動輸入</td><td>打 2026-08-15 格式</td></tr>
+  </table>
+
+  <h3>提前提醒天數</h3>
+  <p>預設 <strong>30 天</strong>（可在設定中修改）。代表有效日期往前 30 天為退貨日。每筆商品可單獨設定。</p>
+
+  <h3>數量與備註（選填）</h3>
+  <p>數量預設為 1；備註可填貨架位置或其他說明。</p>
+
+  <h3>加入行事曆（選填）</h3>
+  <p>勾選「📅 儲存後自動加入行事曆」，儲存時會下載 .ics 檔，打開後可加入手機行事曆。新增時預設已勾選。</p>
+
+  <p style="margin-top:16px;">填完後點 <strong>「儲存」</strong>，商品建檔完成。</p>
+</div>
+
+<!-- 4. 燈號說明 -->
+<div class="section" id="s4">
+  <h2>🚦 4. 燈號說明</h2>
+  <p>每筆商品左側都有一個圓點，代表目前的退貨緊急程度：</p>
+  <div class="lights">
+    <div class="light-card">
+      <div class="light-dot">🔴</div>
+      <div>
+        <div class="title">已過退貨日</div>
+        <div class="desc">今天已超過退貨日，需要立刻處理退貨。</div>
+      </div>
+    </div>
+    <div class="light-card">
+      <div class="light-dot">🟡</div>
+      <div>
+        <div class="title">即將到期</div>
+        <div class="desc">距退貨日還有 7 天以內，請盡快安排退貨。</div>
+      </div>
+    </div>
+    <div class="light-card">
+      <div class="light-dot">🟢</div>
+      <div>
+        <div class="title">安全</div>
+        <div class="desc">距退貨日超過 7 天，目前不需要處理。</div>
+      </div>
+    </div>
+  </div>
+  <div class="tip">退貨日 = 有效日期 − 提前提醒天數<br>例如：有效日期 8/15，提前 30 天 → 退貨日是 7/16</div>
+</div>
+
+<!-- 5. 查看商品列表 -->
+<div class="section" id="s5">
+  <h2>📋 5. 查看商品列表</h2>
+  <p>主畫面就是商品列表，預設依「退貨日近→遠」排列，最緊急的在最上面。</p>
+
+  <h3>搜尋</h3>
+  <p>點上方搜尋框，輸入商品名稱、條碼或貨號，即時顯示符合的商品。</p>
+
+  <h3>篩選</h3>
+  <table>
+    <tr><th>選項</th><th>說明</th></tr>
+    <tr><td>全部</td><td>顯示所有商品</td></tr>
+    <tr><td>已過退貨日</td><td>只看紅燈商品</td></tr>
+    <tr><td>即將到期</td><td>只看黃燈商品</td></tr>
+  </table>
+
+  <h3>排序</h3>
+  <p>可切換「依退貨日排序」或「依建立時間排序」。</p>
+</div>
+
+<!-- 6. 商品詳情與編輯 -->
+<div class="section" id="s6">
+  <h2>🔍 6. 商品詳情與編輯</h2>
+  <p>點任一商品卡片，進入詳情頁，可以看到完整資訊：條碼、商品名稱、有效日期、退貨日、剩餘天數、數量、備註。</p>
+
+  <h3>編輯</h3>
+  <p>點詳情頁的「✏️ 編輯」按鈕，可修改所有欄位，修改後點「儲存」即可。</p>
+  <div class="tip">編輯時「加入行事曆」預設不勾選，避免重複加入行事曆。如需重新加入，手動勾選即可。</div>
+</div>
+
+<!-- 7. 刪除商品 -->
+<div class="section" id="s7">
+  <h2>🗑️ 7. 刪除商品</h2>
+  <p>在詳情頁點「🗑️ 刪除」按鈕，系統會詢問「確定要刪除嗎？」，確認後才會刪除。</p>
+  <div class="warn">⚠️ 注意：刪除後目前無法復原，請確認再操作。</div>
+</div>
+
+<!-- 8. 提醒中心 -->
+<div class="section" id="s8">
+  <h2>🔔 8. 提醒中心</h2>
+  <p>點下方導覽列的「🔔 提醒中心」，可以看到所有已過退貨日或即將到期的商品清單。</p>
+  <ul class="steps">
+    <li><span class="num">1</span><div>每次打開 App，系統自動檢查今天有沒有到期商品</div></li>
+    <li><span class="num">2</span><div>如果有，會彈出提醒通知</div></li>
+    <li><span class="num">3</span><div>您也可以隨時手動進來查看</div></li>
+  </ul>
+</div>
+
+<!-- 9. 行事曆提醒 -->
+<div class="section" id="s9">
+  <h2>📅 9. 行事曆提醒</h2>
+  <p>除了 App 通知，您可以把退貨日加入手機行事曆（Google 日曆、三星行事曆等）。</p>
+
+  <h3>方法一：新增時自動加入</h3>
+  <ul class="steps">
+    <li><span class="num">1</span><div>新增商品時，勾選底部「📅 儲存後自動加入行事曆」</div></li>
+    <li><span class="num">2</span><div>儲存後瀏覽器下載一個 .ics 檔案</div></li>
+    <li><span class="num">3</span><div>點開檔案，選擇要加入哪個行事曆，按確認即完成</div></li>
+  </ul>
+
+  <h3>方法二：詳情頁手動加入</h3>
+  <ul class="steps">
+    <li><span class="num">1</span><div>進入商品詳情頁</div></li>
+    <li><span class="num">2</span><div>點「📅 加入行事曆（退貨日提醒）」按鈕</div></li>
+    <li><span class="num">3</span><div>同樣下載 .ics 檔案，點開後加入行事曆</div></li>
+  </ul>
+
+  <div class="tip">💡 .ics 格式相容 Google 日曆、三星行事曆、小米行事曆、Apple 行事曆、Outlook。</div>
+</div>
+
+<!-- 10. 設定 -->
+<div class="section" id="s10">
+  <h2>⚙️ 10. 設定</h2>
+  <p>點下方導覽列的「⚙️ 設定」，可以調整：</p>
+  <table>
+    <tr><th>設定項目</th><th>說明</th></tr>
+    <tr><td>預設提前提醒天數</td><td>新增商品時，「提前提醒天數」的預設值（預設 30 天）</td></tr>
+    <tr><td>每日提醒時間</td><td>每天幾點發出通知（預設早上 09:00）</td></tr>
+    <tr><td>通知開關</td><td>開啟或關閉所有通知提醒</td></tr>
+  </table>
+</div>
+
+<!-- 11. 備份與還原 -->
+<div class="section" id="s11">
+  <h2>💾 11. 備份與還原</h2>
+
+  <h3>備份（匯出資料）</h3>
+  <ul class="steps">
+    <li><span class="num">1</span><div>進入「⚙️ 設定」</div></li>
+    <li><span class="num">2</span><div>點「匯出備份」</div></li>
+    <li><span class="num">3</span><div>瀏覽器下載一個 .json 備份檔，請存到雲端硬碟或其他地方</div></li>
+  </ul>
+  <div class="warn">⚠️ 強烈建議定期備份，換手機前一定要先備份！</div>
+
+  <h3>還原（從備份匯入）</h3>
+  <ul class="steps">
+    <li><span class="num">1</span><div>進入「⚙️ 設定」</div></li>
+    <li><span class="num">2</span><div>點「匯入備份」</div></li>
+    <li><span class="num">3</span><div>選擇之前存的 .json 備份檔</div></li>
+    <li><span class="num">4</span><div>系統詢問是否覆蓋現有資料，確認後完成還原</div></li>
+  </ul>
+</div>
+
+<!-- 12. 常見問題 -->
+<div class="section" id="s12">
+  <h2>❓ 12. 常見問題</h2>
+
+  <div class="faq-item">
+    <div class="faq-q">Q：資料會不會消失？</div>
+    <div class="faq-a">資料存在手機瀏覽器裡。如果清除瀏覽器快取/資料，內容會消失。建議定期使用「匯出備份」功能保存。</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">Q：換手機怎麼辦？</div>
+    <div class="faq-a">先在舊手機「匯出備份」，把備份檔傳到新手機，再「匯入備份」即完成。</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">Q：語音辨識沒有反應？</div>
+    <div class="faq-a">請確認已允許麥克風權限。語音功能建議使用 Chrome 瀏覽器，Firefox 不支援。</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">Q：掃條碼沒有反應？</div>
+    <div class="faq-a">請確認已允許相機權限。若相機開了但掃不到，可直接在條碼欄位手動輸入數字。</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">Q：收不到通知？</div>
+    <div class="faq-a">請確認：① 設定裡的「通知開關」已開啟 ② 瀏覽器的通知權限已允許 ③ 手機的「請勿打擾」模式沒有開著。</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">Q：別人能看到我的資料嗎？</div>
+    <div class="faq-a">不能。所有資料只存在您自己的手機瀏覽器裡，不會上傳到任何地方。其他人打開同一個網址，看到的是他們自己的空資料。</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">Q：這個 App 要收費嗎？</div>
+    <div class="faq-a">完全免費。</div>
+  </div>
+</div>
+
+<footer>
+  <p>商品效期管理 App &nbsp;|&nbsp; <a href="https://eviltigercro.github.io/return/" target="_blank">開啟 App</a></p>
+  <p style="margin-top:6px;">資料僅存於本機，不會上傳至任何伺服器。</p>
+</footer>
+
+</body>
+</html>
