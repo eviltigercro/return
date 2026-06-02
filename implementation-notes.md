@@ -1,8 +1,34 @@
 # 實作工作日誌（implementation-notes）
 
-> 專案：商品效期管理 App（Android 單機版）
+> 專案：商品效期管理 App（PWA 網頁版，安卓 + iPhone 共用同一份）
 > 規格見 `規格文件.md`
-> 最後更新：2026-05-30（v1.4 測試修正）
+> 最後更新：2026-06-03（v1.5 新增 iPhone 掃碼備援）
+
+---
+
+## [2026-06-03 v1.5 新增 iPhone 掃碼備援（ZXing）]
+
+**目前版本：App v1.5 / SW Cache v9**
+
+**背景：**
+- 使用者詢問 iPhone 是否能掃條碼。確認現況：iPhone Safari 沒有原生 `BarcodeDetector`，原本程式一偵測到不支援就直接放棄、連相機都不開，退回手動輸入。
+- 釐清重點：本 App 本來就是 PWA，安卓與 iPhone 共用同一份程式碼，不需要「做兩個版本再合併」。iPhone 的相機本身能開，缺的只是「自動讀碼」演算法。
+- 使用者決定：先補 iPhone 掃碼（通知、語音在 iPhone 的系統限制暫不處理）。
+
+**本次完成項目：**
+- ✅ 下載 ZXing 函式庫本地檔 `js/zxing.min.js`（@zxing/library 0.21.3 UMD，約 336KB），確保離線可用、不依賴 CDN
+- ✅ 改寫 `openScan()`：雙路徑
+  - 路徑 A：有 `BarcodeDetector`（安卓/桌機 Chrome）→ 維持原邏輯，完全不變
+  - 路徑 B：無 `BarcodeDetector`（iPhone Safari）→ 用 `ZXing.BrowserMultiFormatReader.decodeFromConstraints` 開後鏡頭掃碼
+- ✅ `closeScan()` 新增 ZXing 引擎清理（`zxingReader.reset()` 釋放相機）
+- ✅ `index.html` 加入 `<script src="js/zxing.min.js">`（在 app.js 之前載入）；版本文字 v1.4→v1.5
+- ✅ `sw.js` 快取清單加入 `./js/zxing.min.js`；版本號 v8→v9
+- ✅ `node --check` 語法檢查通過
+
+**尚未完成 / 待使用者協助：**
+- ⬜ 部署到 GitHub Pages（HTTPS 才能開 iPhone 相機）
+- ⬜ iPhone 實機測試：Safari 開網址 → 點掃碼 → 相機開啟 → 自動掃到條碼
+- ⬜ 安卓回歸測試：確認原生掃碼未被改壞
 
 ---
 

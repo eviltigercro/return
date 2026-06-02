@@ -172,7 +172,7 @@
         <input id="import-file" type="file" accept="application/json" hidden />
       </label>
 
-      <p class="version">版本 1.4（2026-05-30）</p>
+      <p class="version">版本 1.5（2026-06-03）</p>
     </main>
   </section>
 
@@ -210,6 +210,8 @@
   <!-- 提示訊息 -->
   <div id="toast" class="toast" hidden></div>
 
+  <!-- ZXing：iPhone 等不支援原生 BarcodeDetector 時的備援掃碼引擎 -->
+  <script src="js/zxing.min.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

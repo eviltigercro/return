@@ -695,49 +695,84 @@ function bindSettings() {
 // ---------- 掃碼 ----------
 let scanStream = null;
 let scanRAF = null;
+let zxingReader = null; // iPhone 等不支援 BarcodeDetector 時使用的備援掃碼引擎
 
 async function openScan() {
-  if (!("BarcodeDetector" in window)) {
+  const overlay = $("#scan-overlay");
+  const video = $("#scan-video");
+
+  // 路徑 A：瀏覽器原生 BarcodeDetector（安卓 Chrome / 桌機 Chrome，速度最快）
+  if ("BarcodeDetector" in window) {
+    try {
+      scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      video.srcObject = scanStream;
+      await video.play();
+      overlay.hidden = false;
+
+      const detector = new BarcodeDetector({ formats: ["ean_13", "ean_8", "code_128", "upc_a", "upc_e", "code_39"] });
+      const tick = async () => {
+        if (overlay.hidden) return;
+        try {
+          const codes = await detector.detect(video);
+          if (codes.length > 0) {
+            const value = codes[0].rawValue;
+            $("#f-barcode").value = value;
+            closeScan();
+            autoFillName();
+            toast("已掃到條碼：" + value);
+            return;
+          }
+        } catch (e) { /* 偵測中斷，繼續下一幀 */ }
+        scanRAF = requestAnimationFrame(tick);
+      };
+      scanRAF = requestAnimationFrame(tick);
+    } catch (e) {
+      toast("無法開啟相機（需 localhost 或 HTTPS 並允許權限）");
+      closeScan();
+    }
+    return;
+  }
+
+  // 路徑 B：備援引擎 ZXing（iPhone Safari 沒有 BarcodeDetector，改用軟體解碼開相機掃）
+  if (!window.ZXing || !ZXing.BrowserMultiFormatReader) {
     toast("此瀏覽器不支援掃碼，請直接在下方輸入條碼");
     focusBarcodeField();
     return;
   }
-  const overlay = $("#scan-overlay");
-  const video = $("#scan-video");
   try {
-    scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-    video.srcObject = scanStream;
-    await video.play();
     overlay.hidden = false;
-
-    const detector = new BarcodeDetector({ formats: ["ean_13", "ean_8", "code_128", "upc_a", "upc_e", "code_39"] });
-    const tick = async () => {
-      if (overlay.hidden) return;
-      try {
-        const codes = await detector.detect(video);
-        if (codes.length > 0) {
-          const value = codes[0].rawValue;
+    zxingReader = new ZXing.BrowserMultiFormatReader();
+    // decodeFromConstraints 會自行開啟相機並綁定到同一個 video 元素，掃到時觸發 callback
+    await zxingReader.decodeFromConstraints(
+      { video: { facingMode: "environment" } },
+      video,
+      (result) => {
+        if (result) {
+          const value = result.getText();
           $("#f-barcode").value = value;
           closeScan();
           autoFillName();
           toast("已掃到條碼：" + value);
-          return;
         }
-      } catch (e) { /* 偵測中斷，繼續下一幀 */ }
-      scanRAF = requestAnimationFrame(tick);
-    };
-    scanRAF = requestAnimationFrame(tick);
+        // 沒掃到的幀會回傳錯誤，屬正常情形，直接忽略
+      }
+    );
   } catch (e) {
-    toast("無法開啟相機（需 localhost 或 HTTPS 並允許權限）");
+    toast("無法開啟相機（需 HTTPS 並允許相機權限）");
     closeScan();
   }
 }
 function closeScan() {
   $("#scan-overlay").hidden = true;
-  if (scanRAF) cancelAnimationFrame(scanRAF);
+  if (scanRAF) { cancelAnimationFrame(scanRAF); scanRAF = null; }
   if (scanStream) {
     scanStream.getTracks().forEach((t) => t.stop());
     scanStream = null;
+  }
+  // 關閉 ZXing 備援引擎並釋放相機
+  if (zxingReader) {
+    try { zxingReader.reset(); } catch (e) { /* 已關閉則忽略 */ }
+    zxingReader = null;
   }
 }
 
